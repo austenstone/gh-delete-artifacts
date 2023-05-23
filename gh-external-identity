@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+set -e
+
+login=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+  --login)
+    login="$2"
+    ;;
+  -h|--help)
+    echo "Add help text here."
+    exit 0
+    ;;
+  esac
+  shift
+done
+
+if [ -z "$login" ]
+then
+  echo "You must provide login input --login octodemo."
+fi
+
+QUERY='
+  query getResource($endCursor: String, $login: String!) {
+    organization(login: $login) {
+      samlIdentityProvider {
+        ssoUrl
+        externalIdentities(first: 100, after: $endCursor) {
+          nodes {
+            scimIdentity {
+              username
+            }
+            samlIdentity {
+              nameId
+            }
+            user {
+              login
+              email
+            }
+          }
+        }
+      }
+    }
+  }
+'
+TEMPLATE='
+  {{- if $.data.organization.samlIdentityProvider }}
+    {{- range $externalIdentity := .data.organization.samlIdentityProvider.nodes -}}
+      {{- printf "email: %s - name: %s $s\n" $externalIdentity.scimIdentity.username $externalIdentity.samlIdentity.givenName $externalIdentity.samlIdentity.familyName -}}
+    {{- end -}}
+  {{- else }}
+    {{ printf "No external identities found\n" }}
+  {{- end }}  
+'
+echo "Querying for external identities for ${login}"
+exec gh api graphql -F login="${login}" -f query="${QUERY}" --paginate --template="${TEMPLATE}"
