@@ -4,12 +4,12 @@ set -e
 # function to get help information
 function help {
   echo '
-  Usage: gh-external-identity [options]
+  Usage: external-identity [options]
 
   Options:
-    -o, --org <org>              The organization to query for external identities
+    -o, --org <org>               The organization to query for external identities
     -e, --enterprise <enterprise> The enterprise to query for external identities
-    -h, --help                   Display help information
+    -h, --help                    Display help information
   '
   exit 0
 }
