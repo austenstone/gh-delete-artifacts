@@ -1,28 +1,43 @@
 #!/usr/bin/env bash
 set -e
 
+# function to get help information
+function help {
+  echo '
+  Usage: gh-external-identity [options]
+
+  Options:
+    -o, --org <org>              The organization to query for external identities
+    -e, --enterprise <enterprise> The enterprise to query for external identities
+    -h, --help                   Display help information
+  '
+  exit 0
+}
+
 login=""
 while [ $# -gt 0 ]; do
   case "$1" in
-  --login)
-    login="$2"
+  -o|--org)
+    org="$2"
+    ;;
+  -e|--enterprise)
+    enterprise="$2"
     ;;
   -h|--help)
-    echo "Add help text here."
-    exit 0
+    help
     ;;
   esac
   shift
 done
 
-if [ -z "$login" ]
+if [ -z "$org" ] && [ -z "$enterprise" ]
 then
-  echo "You must provide login input --login octodemo."
+  help
 fi
 
 QUERY='
-  query getResource($endCursor: String, $login: String!) {
-    organization(login: $login) {
+  query getResource($endCursor: String, $organization: String!) {
+    organization(login: $organization) {
       samlIdentityProvider {
         ssoUrl
         externalIdentities(first: 100, after: $endCursor) {
@@ -43,6 +58,35 @@ QUERY='
     }
   }
 '
+
+ENTERPRISE_QUERY=QUERY='
+  query getResource($endCursor: String, $enterprise: String!) {
+    enterprise(slug: $enterprise) {
+      ownerInfo {
+        samlIdentityProvider {
+          ssoUrl
+          externalIdentities(first: 100, after: $endCursor) {
+            totalCount
+            pageInfo {
+              hasNextPage
+              endCursor
+            }
+            nodes {
+              samlIdentity {
+                nameId
+              }
+              user {
+                login
+                name
+                email
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+'
 TEMPLATE='
   {{- if $.data.organization.samlIdentityProvider }}
     {{- range $externalIdentity := .data.organization.samlIdentityProvider.nodes -}}
@@ -52,5 +96,21 @@ TEMPLATE='
     {{ printf "No external identities found\n" }}
   {{- end }}  
 '
-echo "Querying for external identities for ${login}"
-exec gh api graphql -F login="${login}" -f query="${QUERY}" --paginate --template="${TEMPLATE}"
+
+ENTERPRISE_TEMPLATE='
+  {{- if $.data.enterprise.ownerInfo.samlIdentityProvider }}
+    {{- range $externalIdentity := .data.enterprise.ownerInfo.samlIdentityProvider.nodes -}}
+      {{- printf "email: %s - name: %s $s\n" $externalIdentity.scimIdentity.username $externalIdentity.samlIdentity.givenName $externalIdentity.samlIdentity.familyName -}}
+    {{- end -}}
+  {{- else }}
+    {{ printf "No external identities found\n" }}
+  {{- end }}
+'
+
+echo "Querying for external identities for ${org||enterprise}"
+if [ -z "$enterprise" ]
+then
+  gh api graphql -F organization="${org}" -f query="${QUERY}" --paginate --template="${TEMPLATE}"
+else
+  gh api graphql -F enterprise="${enterprise}" -f query="${ENTERPRISE_QUERY}" --paginate --template="${ENTERPRISE_TEMPLATE}"
+fi
