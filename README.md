@@ -10,7 +10,7 @@ gh extension install austenstone/gh-external-identity
 ## ⚡️ Usage
 Run
 ```bash
-➜  gh-external-identity git:(master) ✗ gh external-identity --help
+➜ gh external-identity --help
 
   Usage: external-identity [options]
 
