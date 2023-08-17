@@ -42,14 +42,12 @@ QUERY='
         ssoUrl
         externalIdentities(first: 100, after: $endCursor) {
           nodes {
-            scimIdentity {
-              username
-            }
             samlIdentity {
               nameId
             }
             user {
               login
+              name
               email
             }
           }
@@ -59,7 +57,7 @@ QUERY='
   }
 '
 
-ENTERPRISE_QUERY=QUERY='
+ENTERPRISE_QUERY='
   query getResource($endCursor: String, $enterprise: String!) {
     enterprise(slug: $enterprise) {
       ownerInfo {
@@ -87,30 +85,24 @@ ENTERPRISE_QUERY=QUERY='
     }
   }
 '
-TEMPLATE='
-  {{- if $.data.organization.samlIdentityProvider }}
-    {{- range $externalIdentity := .data.organization.samlIdentityProvider.nodes -}}
-      {{- printf "email: %s - name: %s $s\n" $externalIdentity.scimIdentity.username $externalIdentity.samlIdentity.givenName $externalIdentity.samlIdentity.familyName -}}
-    {{- end -}}
-  {{- else }}
-    {{ printf "No external identities found\n" }}
-  {{- end }}  
-'
 
-ENTERPRISE_TEMPLATE='
-  {{- if $.data.enterprise.ownerInfo.samlIdentityProvider }}
-    {{- range $externalIdentity := .data.enterprise.ownerInfo.samlIdentityProvider.nodes -}}
-      {{- printf "email: %s - name: %s $s\n" $externalIdentity.scimIdentity.username $externalIdentity.samlIdentity.givenName $externalIdentity.samlIdentity.familyName -}}
-    {{- end -}}
-  {{- else }}
-    {{ printf "No external identities found\n" }}
-  {{- end }}
-'
-
-echo "Querying for external identities for ${org||enterprise}"
+auth_status=$(gh auth status)
 if [ -z "$enterprise" ]
 then
-  gh api graphql -F organization="${org}" -f query="${QUERY}" --paginate --template="${TEMPLATE}"
+  if [ -z "$(echo $auth_status | grep "user:email")" ] || [ -z "$(echo $auth_status | grep "read:user")" ]
+  then
+    echo "Please run 'gh auth refresh --scopes user:email,read:user'"
+    gh auth refresh --scopes user:email,read:user
+  fi
+  echo "Querying org: $org"
+  gh api graphql -F organization="${org}" -f query="${QUERY}" --paginate
 else
-  gh api graphql -F enterprise="${enterprise}" -f query="${ENTERPRISE_QUERY}" --paginate --template="${ENTERPRISE_TEMPLATE}"
+  if [ -z "$(echo $auth_status | grep "read:enterprise")" ]
+  then
+    echo "Please run 'gh auth refresh --scopes read:enterprise'"
+    gh auth refresh --scopes read:enterprise
+  fi
+  echo "Querying enterprise: $enterprise"
+  gh api graphql -F enterprise="${enterprise}" -f query="${ENTERPRISE_QUERY}" --paginate
 fi
+
