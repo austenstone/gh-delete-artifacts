@@ -1,3 +1,6 @@
+> [!NOTE]
+> Use [gh-artifact-purge](https://github.com/andyfeller/gh-artifact-purge) instead.
+
 # gh-delete-artifacts
 
 Delete all GitHub Actions artifacts for a repository or an entire organization.
