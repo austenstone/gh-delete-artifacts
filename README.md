@@ -1,21 +1,35 @@
-# gh-external-identity
+# gh-delete-artifacts
 
-Query information about a GitHub SAML/SCIM identity
+Delete all GitHub Actions artifacts for a repository or an entire organization.
 
 ## 📦 Install
 ```bash
-gh extension install austenstone/gh-external-identity
+gh extension install <your-github-username>/gh-delete-artifacts
 ```
 
 ## ⚡️ Usage
 Run
 ```bash
-➜ gh external-identity --help
+➜ gh delete-artifacts --help
 
-  Usage: external-identity [options]
+  Usage: delete-artifacts [options]
 
   Options:
-    -o, --org <org>               The organization to query for external identities
-    -e, --enterprise <enterprise> The enterprise to query for external identities
+    -o, --org <org>               The organization to query for deleting artifacts
+    -r, --repo <repo>             (Optional) The repository to query for deleting artifacts
     -h, --help                    Display help information
 ```
+
+## 🚀 Example
+To delete all artifacts for a specific repository:
+```bash
+gh delete-artifacts -o my-org -r my-repo
+```
+
+To delete all artifacts for all repositories in an organization:
+```bash
+gh delete-artifacts -o my-org
+```
+
+## ⚠️ Warning
+This script will permanently delete artifacts. Please use it with caution.

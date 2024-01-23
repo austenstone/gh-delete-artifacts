@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+set -e
+
+function help {
+  echo 'Usage: gh-delete-artifacts -o <org> [-r <repo>]'
+  exit 0
+}
+
+while getopts "o:r:" opt; do
+  case ${opt} in
+    o )
+      org=$OPTARG
+      ;;
+    r )
+      repo=$OPTARG
+      ;;
+    \? )
+      help
+      ;;
+  esac
+done
+
+if ! command -v gh &> /dev/null
+then
+    echo "GitHub CLI (gh) could not be found. Please install it first."
+    exit
+fi
+
+if [[ -z "$org" ]]; then
+  echo "Organization is not specified."
+  help
+fi
+
+if [[ -n "$repo" ]]; then
+  workflows=$(gh api repos/$org/$repo/actions/workflows --jq '.workflows[] | .id')
+else
+  workflows=$(gh api orgs/$org/actions/workflows --jq '.workflows[] | .id')
+fi
+
+for workflow in $workflows; do
+  artifacts=$(gh api repos/$org/$repo/actions/workflows/$workflow/runs --paginate --jq '.workflow_runs[] | .artifacts_url')
+  for artifact in $artifacts; do
+    gh api -X DELETE $artifact
+  done
+done
