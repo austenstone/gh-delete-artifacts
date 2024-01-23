@@ -2,9 +2,11 @@
 
 Delete all GitHub Actions artifacts for a repository or an entire organization.
 
+> **WARNING**: This will delete all artifacts for the specified repository or organization. This cannot be undone.
+
 ## 📦 Install
 ```bash
-gh extension install <your-github-username>/gh-delete-artifacts
+gh extension install austenstone/gh-delete-artifacts
 ```
 
 ## ⚡️ Usage
@@ -30,6 +32,3 @@ To delete all artifacts for all repositories in an organization:
 ```bash
 gh delete-artifacts -o my-org
 ```
-
-## ⚠️ Warning
-This script will permanently delete artifacts. Please use it with caution.
