@@ -2,17 +2,25 @@
 set -e
 
 function help {
-  echo 'Usage: gh-delete-artifacts -o <org> [-r <repo>]'
+  echo 'Usage: gh-delete-artifacts -o <org> [-r <repo>] [-w <workflow>] [-n <run>]'
   exit 0
 }
 
-while getopts "o:r:" opt; do
+deleted_artifacts=0  # Counter variable
+
+while getopts "o:r:w:n:" opt; do
   case ${opt} in
-    o )
+    o|org )
       org=$OPTARG
       ;;
-    r )
+    r|repo )
       repo=$OPTARG
+      ;;
+    w|workflow )
+      workflow=$OPTARG
+      ;;
+    n|run )
+      run=$OPTARG
       ;;
     \? )
       help
@@ -37,9 +45,25 @@ else
   workflows=$(gh api orgs/$org/actions/workflows --jq '.workflows[] | .id')
 fi
 
-for workflow in $workflows; do
-  artifacts=$(gh api repos/$org/$repo/actions/workflows/$workflow/runs --paginate --jq '.workflow_runs[] | .artifacts_url')
-  for artifact in $artifacts; do
-    gh api -X DELETE $artifact
+echo "Looking for artifacts for:"
+for workflow_id in $workflows; do
+  if [[ -n "$workflow" && "$workflow_id" != "$workflow" ]]; then
+    continue
+  fi
+  echo "Workflow ID: $workflow_id"
+  runs=$(gh api repos/$org/$repo/actions/workflows/$workflow_id/runs --jq '.workflow_runs[] | .id')
+  for run_id in $runs; do
+    if [[ -n "$run" && "$run_id" != "$run" ]]; then
+      continue
+    fi
+    echo "Run ID: $run_id"
+    artifact_urls=$(gh api repos/$org/$repo/actions/runs/$run_id/artifacts --jq '.artifacts[] | .url')
+    for artifact_url in $artifact_urls; do
+      echo "DELETE $artifact_url"
+      gh api --method DELETE $artifact_url
+      ((deleted_artifacts++))  # Increment the counter variable
+    done
   done
 done
+
+echo "Total artifacts deleted: $deleted_artifacts"  # Print the total number of deleted artifacts
