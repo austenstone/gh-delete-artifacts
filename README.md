@@ -2,7 +2,8 @@
 
 Delete all GitHub Actions artifacts for a repository or an entire organization.
 
-> **WARNING**: This will delete all artifacts for the specified repository or organization. This cannot be undone.
+> [!WARNING]
+> This is a destructive action. Once artifacts are deleted, they cannot be recovered.
 
 ## 📦 Install
 ```bash
